@@ -1,3 +1,7 @@
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class TxHandler {
 
 	/* Creates a public ledger whose current UTXOPool (collection of unspent 
@@ -11,6 +15,10 @@ public class TxHandler {
 		uPool = new UTXOPool (utxoPool);
 	}
 
+	public UTXOPool getUTXOPool() {
+		return uPool;
+	}
+	
 	/* Returns true if 
 	 * (1) all outputs claimed by tx are in the current UTXO pool, 
 	 * (2) the signatures on each input of tx are valid, 
@@ -20,13 +28,57 @@ public class TxHandler {
 	        its output values;
 	   and false otherwise.
 	 */
-	
-	public UTXOPool getUTXOPool() {
-		return uPool;
-	}
 
 	public boolean isValidTx(Transaction tx) {
 		// IMPLEMENT THIS
+		
+		double inputSum = 0;
+		double outputSum = 0;
+		
+		ArrayList<UTXO> utxo = uPool.getAllUTXO();
+		ArrayList<UTXO> existingUtxo = new ArrayList<UTXO>();
+		
+		for(int i = 0; i < tx.numInputs(); i++) {
+			UTXO utxoTemp = new UTXO(tx.getInput(i).prevTxHash, tx.getInput(i).outputIndex);
+			
+			// Search if all outputs claimed by tx are in the current UTXO pool
+			
+			if( !uPool.contains(utxoTemp)) {
+				return false;
+			}
+			
+			inputSum += uPool.getTxOutput(utxoTemp).value;
+			
+			// Verify that signatures on each input of tx are valid
+			RSAKey utxoKey = uPool.getTxOutput(utxoTemp).address;
+			
+			if( !utxoKey.verifySignature(tx.getRawDataToSign(i), tx.getInput(i).signature) ) {
+				return false;
+			}
+			
+			//System.out.println("rawDataToSign: " + tx.getRawDataToSign(i) + " tx.getInput signature: " + tx.getInput(i).signature);
+			// Make sure no two UTXO are claimed multiple times by tx
+			if(existingUtxo.contains(utxoTemp)) {
+				return false;
+			}
+			
+			existingUtxo.add(utxoTemp);
+		}
+		
+		// Check to make sure all output values are non-negative
+		
+		for(int i = 0; i < tx.numOutputs(); i++) {
+			if(tx.getOutput(i).value < 0) {
+				return false;
+			}
+			outputSum += tx.getOutput(i).value;
+		}
+		
+		// Make sure that the input sum is greater than the output sum otherwise return false
+		if(outputSum > inputSum) {
+			return false;
+		}
+		
 		return true;
 	}
 
@@ -37,7 +89,26 @@ public class TxHandler {
 	 */
 	public Transaction[] handleTxs(Transaction[] possibleTxs) {
 		// IMPLEMENT THIS
-		return null;
+		ArrayList<Transaction> checkedTransaction = new ArrayList<Transaction>();
+		
+		for(int i = 0; i < possibleTxs.length; i++) {
+			if(isValidTx(possibleTxs[i])) {
+				// Get rid of the old UTXOs from our uPool
+				for(int j = 0; j < possibleTxs[i].numOutputs(); j++) {
+					UTXO nUtxo = new UTXO(possibleTxs[i].getHash(), j);
+					uPool.addUTXO(nUtxo, possibleTxs[i].getOutputs().get(j));
+				}
+				
+				checkedTransaction.add(possibleTxs[i]);
+				
+			}
+		}
+		
+		Transaction[] newTxs = new Transaction[checkedTransaction.size()];
+		
+		newTxs = checkedTransaction.toArray(newTxs);
+		return newTxs;
+		
 	}
 
 } 
