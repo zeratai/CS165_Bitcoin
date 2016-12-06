@@ -52,8 +52,10 @@ public class TxHandler {
 			// Verify that signatures on each input of tx are valid
 			RSAKey utxoKey = uPool.getTxOutput(utxoTemp).address;
 			
-			if( !utxoKey.verifySignature(tx.getRawDataToSign(i), tx.getInput(i).signature) ) {
-				return false;
+			if(tx.getRawDataToSign(i) != null && tx.getInput(i).signature != null) {
+				if( !utxoKey.verifySignature(tx.getRawDataToSign(i), tx.getInput(i).signature) ) {
+					return false;
+				}
 			}
 			
 			//System.out.println("rawDataToSign: " + tx.getRawDataToSign(i) + " tx.getInput signature: " + tx.getInput(i).signature);

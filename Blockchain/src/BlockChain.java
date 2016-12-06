@@ -10,7 +10,7 @@ public class BlockChain {
    public static final int CUT_OFF_AGE = 10;
    
    private ArrayList<BlockNode> heads;  
-   private HashMap<ByteArrayWrapper, BlockNode> H;
+   private HashMap<byte[], BlockNode> H;
    private int height;
    private BlockNode maxHeightBlock;    
    private TransactionPool txPool;
@@ -54,8 +54,8 @@ public class BlockChain {
 	    BlockNode genesis = new BlockNode(genesisBlock, null, uPool);      
 	    heads = new ArrayList<BlockNode>();      
 	    heads.add(genesis);      
-	    H = new HashMap<ByteArrayWrapper, BlockNode>();      
-	    H.put(new ByteArrayWrapper(genesisBlock.getHash()), genesis);      
+	    H = new HashMap<byte[], BlockNode>();      
+	    H.put((genesisBlock.getHash()), genesis);      
 	    height = 1;      
 	    maxHeightBlock = genesis;      
 	    txPool = new TransactionPool(); 
@@ -94,9 +94,9 @@ public class BlockChain {
     */
    public boolean addBlock(Block b) {
        // IMPLEMENT THIS
-	   if(b.getTransactions().size() == 0) {
+	   /*if(b.getTransactions().size() == 0) {
 		   return true;
-	   }
+	   }*/
 	   
 	   byte[] parentHash = b.getPrevBlockHash();
 	   if(parentHash == null) {
@@ -107,13 +107,13 @@ public class BlockChain {
 	   
 	   if(parentBlock == null) {
 		  //b = null;
-		  return true;
+		  return false;
 	   }
 	   
 	   ArrayList<Transaction> arrayTx = b.getTransactions();
 	   
-	   int currentHeight = height + 1;
-	   if(currentHeight < height - CUT_OFF_AGE) {
+	   int currentHeight = parentBlock.height + 1;
+	   if(currentHeight <= height - CUT_OFF_AGE) {
 		   return false;
 	   }
 	   
@@ -129,8 +129,8 @@ public class BlockChain {
 	   
 	   Transaction[] validTransactions = txHandler.handleTxs(possibleTxs);
 	   
-	   System.out.println("Length of validTransactions: " + validTransactions.length);
-	   System.out.println("Length of possibleTxs: " + possibleTxs.length);
+	   //System.out.println("Length of validTransactions: " + validTransactions.length);
+	   //System.out.println("Length of possibleTxs: " + possibleTxs.length);
 	   
 	   UTXOPool cUpool = txHandler.getUTXOPool();
 	   
@@ -141,7 +141,7 @@ public class BlockChain {
 	   cUpool.addUTXO(new UTXO(b.getCoinbase().getHash(), 0), b.getCoinbase().getOutput(0));
 	   
 	   BlockNode newBlockNode = new BlockNode(b, parentBlock, cUpool);
-	   H.put(new ByteArrayWrapper(b.getHash()), newBlockNode);
+	   H.put((b.getHash()), newBlockNode);
 	   heads.add(newBlockNode);
 	   
 	   if(currentHeight > height) {
