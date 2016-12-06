@@ -8,6 +8,12 @@ import java.util.HashMap;
 
 public class BlockChain {
    public static final int CUT_OFF_AGE = 10;
+   
+   private ArrayList<BlockNode> heads;  
+   private HashMap<ByteArrayWrapper, BlockNode> H;
+   private int height;
+   private BlockNode maxHeightBlock;    
+   private TransactionPool txPool;
 
    // all information required in handling a block in block chain
    private class BlockNode {
@@ -41,13 +47,25 @@ public class BlockChain {
     */
    public BlockChain(Block genesisBlock) {
       // IMPLEMENT THIS
+	    UTXOPool uPool = new UTXOPool();      
+	    Transaction coinbase = genesisBlock.getCoinbase();      
+	    UTXO utxoCoinbase = new UTXO(coinbase.getHash(), 0);      
+	    uPool.addUTXO(utxoCoinbase, coinbase.getOutput(0));      
+	    BlockNode genesis = new BlockNode(genesisBlock, null, uPool);      
+	    heads = new ArrayList<BlockNode>();      
+	    heads.add(genesis);      
+	    H = new HashMap<ByteArrayWrapper, BlockNode>();      
+	    H.put(new ByteArrayWrapper(genesisBlock.getHash()), genesis);      
+	    height = 1;      
+	    maxHeightBlock = genesis;      
+	    txPool = new TransactionPool(); 
    }
 
    /* Get the maximum height block
     */
    public Block getMaxHeightBlock() {
       // IMPLEMENT THIS
-	   Block b = null;
+	   Block b = maxHeightBlock.b;
 	   return b;
    }
    
@@ -56,15 +74,14 @@ public class BlockChain {
     */
    public UTXOPool getMaxHeightUTXOPool() {
       // IMPLEMENT THIS
-	   return new UTXOPool();
+	   return maxHeightBlock.uPool;
    }
    
    /* Get the transaction pool to mine a new block
     */
    public TransactionPool getTransactionPool() {
       // IMPLEMENT THIS
-	   TransactionPool tp = null;
-	   return tp;
+	   return txPool;
    }
 
    /* Add a block to block chain if it is valid.
@@ -76,13 +93,68 @@ public class BlockChain {
     * Return true of block is successfully added
     */
    public boolean addBlock(Block b) {
-	   return false;
        // IMPLEMENT THIS
+	   if(b.getTransactions().size() == 0) {
+		   return true;
+	   }
+	   
+	   byte[] parentHash = b.getPrevBlockHash();
+	   if(parentHash == null) {
+		   return false;
+	   }
+	   
+	   BlockNode parentBlock = this.H.get(parentHash);
+	   
+	   if(parentBlock == null) {
+		  //b = null;
+		  return true;
+	   }
+	   
+	   ArrayList<Transaction> arrayTx = b.getTransactions();
+	   
+	   int currentHeight = height + 1;
+	   if(currentHeight < height - CUT_OFF_AGE) {
+		   return false;
+	   }
+	   
+	   //System.out.println(parentBlock.height);
+	   
+	   TxHandler txHandler = new TxHandler(parentBlock.getUTXOPoolCopy());
+	   Transaction[] possibleTxs = new Transaction[arrayTx.size()];
+	   possibleTxs = arrayTx.toArray(possibleTxs);
+	   
+	   for(int i = 0; i < arrayTx.size(); i++) {
+		   possibleTxs[i].finalize();
+	   }
+	   
+	   Transaction[] validTransactions = txHandler.handleTxs(possibleTxs);
+	   
+	   System.out.println("Length of validTransactions: " + validTransactions.length);
+	   System.out.println("Length of possibleTxs: " + possibleTxs.length);
+	   
+	   UTXOPool cUpool = txHandler.getUTXOPool();
+	   
+	   if(validTransactions.length < possibleTxs.length) {
+		   return false;
+	   }
+	   
+	   cUpool.addUTXO(new UTXO(b.getCoinbase().getHash(), 0), b.getCoinbase().getOutput(0));
+	   
+	   BlockNode newBlockNode = new BlockNode(b, parentBlock, cUpool);
+	   H.put(new ByteArrayWrapper(b.getHash()), newBlockNode);
+	   heads.add(newBlockNode);
+	   
+	   if(currentHeight > height) {
+		   height++;
+		   maxHeightBlock = newBlockNode;
+	   }
+	   return true;
    }
 
    /* Add a transaction in transaction pool
     */
    public void addTransaction(Transaction tx) {
       // IMPLEMENT THIS
+	   txPool.addTransaction(tx);
    }
 }

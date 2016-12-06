@@ -1,0 +1,16 @@
+/Block.class
+/BlockChain$BlockNode.class
+/BlockChain.class
+/BlockHandler.class
+/ByteArrayWrapper.class
+/DropboxTestBlockChain$ForwardBlockNode.class
+/DropboxTestBlockChain.class
+/TestIsValidTx.class
+/TestTxHandler.class
+/Transaction$Input.class
+/Transaction$Output.class
+/Transaction.class
+/TransactionPool.class
+/TxHandler.class
+/UTXO.class
+/UTXOPool.class

@@ -94,6 +94,12 @@ public class TxHandler {
 		for(int i = 0; i < possibleTxs.length; i++) {
 			if(isValidTx(possibleTxs[i])) {
 				// Get rid of the old UTXOs from our uPool
+				for(int k = 0; k < possibleTxs[i].numInputs(); k++) {
+					UTXO removeUTXO = new UTXO(possibleTxs[i].getInput(k).prevTxHash, possibleTxs[i].getInput(k).outputIndex);
+					uPool.removeUTXO(removeUTXO);
+				}
+				
+				// add new UTXOs to the previous pool
 				for(int j = 0; j < possibleTxs[i].numOutputs(); j++) {
 					UTXO nUtxo = new UTXO(possibleTxs[i].getHash(), j);
 					uPool.addUTXO(nUtxo, possibleTxs[i].getOutputs().get(j));
