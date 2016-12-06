@@ -1,5 +1,5 @@
-import java.util.ArrayList;
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class TxHandler {
@@ -23,8 +23,8 @@ public class TxHandler {
 	 * (1) all outputs claimed by tx are in the current UTXO pool, 
 	 * (2) the signatures on each input of tx are valid, 
 	 * (3) no UTXO is claimed multiple times by tx, 
-	 * (4) all of tx’s output values are non-negative, and
-	 * (5) the sum of tx’s input values is greater than or equal to the sum of   
+	 * (4) all of txâ€™s output values are non-negative, and
+	 * (5) the sum of txâ€™s input values is greater than or equal to the sum of   
 	        its output values;
 	   and false otherwise.
 	 */
@@ -52,12 +52,13 @@ public class TxHandler {
 			// Verify that signatures on each input of tx are valid
 			RSAKey utxoKey = uPool.getTxOutput(utxoTemp).address;
 			
-			if( !utxoKey.verifySignature(tx.getRawDataToSign(i), tx.getInput(i).signature) ) {
-				return false;
+			if(tx.getRawDataToSign(i) != null && tx.getInput(i).signature != null) {
+				if( !utxoKey.verifySignature(tx.getRawDataToSign(i), tx.getInput(i).signature) ) {
+					return false;
+				}
 			}
 			
 			//System.out.println("rawDataToSign: " + tx.getRawDataToSign(i) + " tx.getInput signature: " + tx.getInput(i).signature);
-			
 			// Make sure no two UTXO are claimed multiple times by tx
 			if(existingUtxo.contains(utxoTemp)) {
 				return false;
@@ -96,18 +97,19 @@ public class TxHandler {
 			if(isValidTx(possibleTxs[i])) {
 				// Get rid of the old UTXOs from our uPool
 				for(int k = 0; k < possibleTxs[i].numInputs(); k++) {
-					UTXO oldUtxo = new UTXO(possibleTxs[i].getInput(k).prevTxHash,possibleTxs[i].getInput(k).outputIndex);
-					uPool.removeUTXO(oldUtxo);
+					UTXO removeUTXO = new UTXO(possibleTxs[i].getInput(k).prevTxHash, possibleTxs[i].getInput(k).outputIndex);
+					uPool.removeUTXO(removeUTXO);
 				}
-				//Add new utxos to uPool
+				
+				// add new UTXOs to the previous pool
 				for(int j = 0; j < possibleTxs[i].numOutputs(); j++) {
 					UTXO nUtxo = new UTXO(possibleTxs[i].getHash(), j);
 					uPool.addUTXO(nUtxo, possibleTxs[i].getOutputs().get(j));
 				}
+				
 				checkedTransaction.add(possibleTxs[i]);
 				
 			}
-		
 		}
 		
 		Transaction[] newTxs = new Transaction[checkedTransaction.size()];
